@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Train Model - TrackMaster AI Face Detection{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center">Train the Model</h1>
+    <div class="text-center mb-4">
+        <button class="btn btn-primary" id="select-model" data-model="mobilenetv2">Model 1 - MobileNetV2</button>
+    </div>
+    <div id="model-info" class="text-center mb-4" style="display: none;">
+        <h3>Model Description:</h3>
+        <p>
+            <strong>MobileNetV2:</strong> MobileNetV2 is a lightweight convolutional neural network designed for mobile and embedded vision applications. It uses depthwise separable convolutions to reduce the number of parameters and computations, making it efficient for real-time face recognition tasks. Despite being lightweight, it provides competitive accuracy by using inverted residuals and linear bottlenecks.
+        </p>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Prepare Data:</h3>
+            <button class="btn btn-secondary" id="prepare-data" disabled>Prepare Data</button>
+            <div class="progress mt-3">
+                <div id="preparation-progress-bar" class="progress-bar progress-bar-striped" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+            <div id="preparation-log" class="mt-3" style="height: 200px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;"></div>
+        </div>
+        <div class="col-md-6">
+            <h3>Start Training:</h3>
+            <div class="form-group">
+                <label for="epochs">Number of Epochs:</label>
+                <input type="number" class="form-control" id="epochs" value="10">
+            </div>
+            <div class="form-group">
+                <label for="batch-size">Batch Size:</label>
+                <input type="number" class="form-control" id="batch-size" value="32">
+            </div>
+            <button class="btn btn-primary" id="start-training" disabled>Start Training</button>
+            <div class="progress mt-3">
+                <div id="training-progress-bar" class="progress-bar progress-bar-striped" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+            <div id="training-log" class="mt-3" style="height: 200px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#select-model').click(function() {
+            var model = $(this).data('model');
+            $('#model-info').show();
+            $('#prepare-data').prop('disabled', false);
+        });
+
+        $('#prepare-data').click(function() {
+            $(this).prop('disabled', true);
+            $('#preparation-progress-bar').css('width', '0%').text('0%');
+            $('#preparation-log').html('');
+
+            $.post('/start_data_preparation', function(data) {
+                if (data.status === 'started') {
+                    var preparationInterval = setInterval(function() {
+                        $.get('/data_preparation_progress', function(progressData) {
+                            $('#preparation-progress-bar').css('width', progressData.progress + '%').text(progressData.progress + '%');
+                            $('#preparation-log').append(progressData.log.replace(/\n/g, "<br>"));
+                            if (progressData.progress >= 100) {
+                                clearInterval(preparationInterval);
+                                $('#start-training').prop('disabled', false);
+                            }
+                        });
+                    }, 1000);
+                }
+            });
+        });
+
+        $('#start-training').click(function() {
+            $(this).prop('disabled', true);
+            var epochs = $('#epochs').val();
+            var batchSize = $('#batch-size').val();
+            $('#training-progress-bar').css('width', '0%').text('0%');
+            $('#training-log').html('');
+
+            $.ajax({
+                url: '/start_training',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    model: 'mobilenetv2',
+                    epochs: epochs,
+                    batch_size: batchSize
+                }),
+                success: function(data) {
+                    if (data.status === 'started') {
+                        var trainingInterval = setInterval(function() {
+                            $.get('/training_progress', function(progressData) {
+                                $('#training-progress-bar').css('width', progressData.progress + '%').text(progressData.progress + '%');
+                                $('#training-log').append(progressData.log.replace(/\n/g, "<br>"));
+                                if (progressData.progress >= 100) {
+                                    clearInterval(trainingInterval);
+                                }
+                            });
+                        }, 1000);
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

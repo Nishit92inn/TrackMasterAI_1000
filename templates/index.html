@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Home - TrackMaster AI Face Detection{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <h2>Image Scraper</h2>
+            <p>Scrape images of celebrities for face detection.</p>
+            <a href="{{ url_for('image_scraper') }}" class="btn btn-primary">Go to Image Scraper</a>
+        </div>
+        <div class="col-md-4">
+            <h2>Face Detection and Feature Engineering</h2>
+            <p>Detect and extract faces from the scraped images.</p>
+            <a href="{{ url_for('face_detection') }}" class="btn btn-primary">Go to Face Detection</a>
+        </div>
+        <div class="col-md-4">
+            <h2>Train the Model</h2>
+            <p>Train models for face recognition and evaluate their performance.</p>
+            <a href="{{ url_for('train_model') }}" class="btn btn-primary">Go to Model Training</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
