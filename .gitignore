@@ -75,3 +75,6 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Virtual Environment
+FaceDetection_venv/
