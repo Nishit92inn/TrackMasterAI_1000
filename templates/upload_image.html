@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Upload Image{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center">Upload an Image for Prediction</h1>
+    <form action="/predict" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="file">Select image:</label>
+            <input type="file" class="form-control" id="file" name="file">
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Upload</button>
+    </form>
+    {% if prediction %}
+    <div class="mt-4">
+        <h3>Prediction Result:</h3>
+        <p class="text-center">{{ prediction }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

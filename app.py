@@ -13,6 +13,14 @@ import io
 import re
 import datetime
 import json
+from werkzeug.utils import secure_filename
+import os
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image
+import numpy as np
+import threading
+import pickle
+
 
 
 
@@ -21,6 +29,8 @@ app = Flask(__name__)
 # Create folders if they do not exist
 os.makedirs("raw_dataset", exist_ok=True)
 os.makedirs("processed", exist_ok=True)
+os.makedirs("models", exist_ok=True)
+os.makedirs("uploads", exist_ok=True)
 os.makedirs("models", exist_ok=True)
 
 # Global variables to keep track of progress
@@ -411,6 +421,45 @@ def evaluation_results():
     except FileNotFoundError:
         return "No evaluation results found. Please run the evaluation first."
 
+@app.route('/upload_image')
+def upload_image():
+    return render_template('upload_image.html')
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    if 'file' not in request.files:
+        return "No file part"
+    file = request.files['file']
+    if file.filename == '':
+        return "No selected file"
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join('uploads', filename)
+        file.save(filepath)
+        prediction = make_prediction(filepath)
+        return render_template('upload_image.html', prediction=prediction)
+    
+def make_prediction(image_path):
+    model_path = 'models/mobilenetv2_face_recognition.h5'
+    model = tf.keras.models.load_model(model_path)
+    img = image.load_img(image_path, target_size=(128, 128))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = img_array / 255.0
+    predictions = model.predict(img_array)
+    predicted_class_index = np.argmax(predictions, axis=1)[0]
+    
+    with open('prepared_data/label_dict.pkl', 'rb') as f:
+        label_dict = pickle.load(f)
+    class_labels = {v: k for k, v in label_dict.items()}
+    
+    # Handle case where prediction confidence is low
+    confidence = predictions[0][predicted_class_index]
+    if confidence < 0.5:  # threshold can be adjusted
+        return "Unknown"
+    
+    predicted_class = class_labels.get(predicted_class_index, "Unknown")
+    return predicted_class
 
 
 if __name__ == '__main__':
