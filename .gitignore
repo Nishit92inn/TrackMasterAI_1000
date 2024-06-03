@@ -78,3 +78,7 @@ target/
 
 # Virtual Environment
 FaceDetection_venv/
+FaceDetection_venv/
+__pycache__/
+*.pyc
+*.pkl
