@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Model Evaluation Results{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center">Model Evaluation Results</h1>
+    {% if metrics %}
+    <div class="mt-4">
+        <h3>Evaluation Metrics</h3>
+        <p><strong>Accuracy:</strong> {{ metrics.accuracy }}</p>
+        <p><strong>Precision:</strong> {{ metrics.precision }}</p>
+        <p><strong>Recall:</strong> {{ metrics.recall }}</p>
+        <p><strong>F1 Score:</strong> {{ metrics.f1 }}</p>
+        <h3>Classification Report</h3>
+        <pre>{{ metrics.report }}</pre>
+    </div>
+    {% else %}
+    <p>No evaluation results found. Please run the evaluation first.</p>
+    {% endif %}
+</div>
+{% endblock %}

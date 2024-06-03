@@ -12,6 +12,7 @@ import os
 import io
 import re
 import datetime
+import json
 
 
 
@@ -30,6 +31,10 @@ training_log = ""
 last_log_length = 0
 data_preparation_progress = 0
 data_preparation_log = ""
+evaluation_progress = 0
+evaluation_log = ""
+last_log_length = 0
+
 
 @app.route('/')
 def index():
@@ -339,6 +344,74 @@ def training_progress_route():
     current_log = training_log[last_log_length:]
     last_log_length = len(training_log)
     return jsonify({"progress": training_progress, "log": current_log})
+
+@app.route('/model_evaluation')
+def model_evaluation():
+    return render_template('model_evaluation.html')
+
+@app.route('/start_evaluation', methods=['POST'])
+def start_evaluation():
+    global evaluation_progress, evaluation_log
+    data = request.form
+    model = data['model']
+    evaluation_progress = 0
+    evaluation_log = ""
+
+    threading.Thread(target=evaluate_model_function, args=(model,)).start()
+    
+    return jsonify({"status": "started"})
+
+def evaluate_model_function(model):
+    global evaluation_progress, evaluation_log
+
+    model_path = os.path.join('models', f'{model}_face_recognition.h5')
+    if not os.path.exists(model_path):
+        evaluation_log = "Model file not found. Please train the model first.<br>"
+        evaluation_progress = 100
+        return
+
+    command = [
+        os.path.join(os.environ['VIRTUAL_ENV'], 'Scripts', 'python.exe'),
+        "evaluate_model.py"
+    ]
+
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=os.environ.copy(), cwd=os.path.dirname(os.path.abspath(__file__)))
+
+    while True:
+        output = process.stdout.readline()
+        if output == "" and process.poll() is not None:
+            break
+        if output:
+            evaluation_log += output.strip().replace("\n", "<br>") + "<br>"
+            evaluation_progress = min(100, evaluation_progress + 10)
+
+    stderr = process.communicate()[1]
+    if stderr:
+        evaluation_log += "Error:<br>" + stderr.replace("\n", "<br>") + "<br>"
+
+    evaluation_log += "<br>Evaluation process finished.<br>"
+    evaluation_progress = 100
+
+
+@app.route('/evaluation_progress')
+def evaluation_progress_route():
+    global evaluation_progress, evaluation_log, last_log_length
+    current_log = evaluation_log[last_log_length:]
+    last_log_length = len(evaluation_log)
+    return jsonify({"progress": evaluation_progress, "log": current_log})
+
+
+@app.route('/evaluation_results')
+def evaluation_results():
+    log_dir = 'Model_Evaluation_Logs'
+    try:
+        with open(os.path.join(log_dir, 'evaluation_metrics.json'), 'r', encoding='utf-8') as f:
+            metrics = json.load(f)
+        return render_template('evaluation_results.html', metrics=metrics)
+    except FileNotFoundError:
+        return "No evaluation results found. Please run the evaluation first."
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

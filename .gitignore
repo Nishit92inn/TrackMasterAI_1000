@@ -85,3 +85,4 @@ __pycache__/
 
 #Log files  for model training data
 /model_logs/
+Model_Evaluation_Logs
