@@ -82,3 +82,6 @@ FaceDetection_venv/
 __pycache__/
 *.pyc
 *.pkl
+
+#Log files  for model training data
+/model_logs/

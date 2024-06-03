@@ -5,6 +5,15 @@ import time
 from mtcnn import MTCNN
 import cv2
 from data_preparation import prepare_data
+import subprocess
+import locale
+locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+import os
+import io
+import re
+import datetime
+
+
 
 app = Flask(__name__)
 
@@ -256,18 +265,73 @@ def data_preparation_thread():
         data_preparation_log += f"Error during data preparation: {e}\n"
         data_preparation_progress = 100
 
+def clean_log_output(output):
+    ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+    return ansi_escape.sub('', output)
+
 def train_model_function(model, epochs, batch_size):
     global training_progress, training_log, last_log_length
     training_log = ""
     last_log_length = 0  # Reset the length of the last log
-    for epoch in range(epochs):
-        time.sleep(1)  # Simulate time taken for training
-        if epoch != 0:
-            training_log += "<br>"
-        training_log += f"Epoch {epoch + 1}/{epochs} completed."
-        training_progress = int((epoch + 1) / epochs * 100)
-    training_log += "<br>Training completed."
-    training_progress = 100
+
+    # Path to the Python interpreter in the virtual environment
+    python_executable = os.path.join(os.environ['VIRTUAL_ENV'], 'Scripts', 'python.exe')
+
+    # Set environment variables
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+
+    # Create a new folder for logs if it doesn't exist
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model_logs')
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Generate a unique log filename
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"{model}_{timestamp}.log"
+    log_filepath = os.path.join(log_dir, log_filename)
+
+    # Open the log file
+    with open(log_filepath, 'w', encoding='utf-8') as log_file:
+
+        # Call the train_model.py script
+        command = [
+            python_executable, "train_model.py",
+            "--epochs", str(epochs),
+            "--batch_size", str(batch_size)
+        ]
+
+        # Use the cwd to set the current working directory for the subprocess
+        cwd = os.path.dirname(os.path.abspath(__file__))
+        
+        # Start the subprocess
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=cwd)
+        
+        # Wrap stdout and stderr in TextIOWrapper with utf-8 encoding
+        stdout_wrapper = io.TextIOWrapper(process.stdout, encoding='utf-8')
+        stderr_wrapper = io.TextIOWrapper(process.stderr, encoding='utf-8')
+        
+        # Monitor the progress and logs
+        while True:
+            output = stdout_wrapper.readline()
+            if output == "" and process.poll() is not None:
+                break
+            if output:
+                cleaned_output = clean_log_output(output)
+                log_file.write(cleaned_output + "\n")
+                log_file.flush()
+                if "Epoch" in cleaned_output:
+                    training_log += cleaned_output.strip().replace("\n", "<br>") + "<br>"
+                    training_progress = min(100, training_progress + (100 // epochs))
+
+        stderr = stderr_wrapper.read()
+        if stderr:
+            cleaned_error = clean_log_output(stderr)
+            log_file.write("Error:\n" + cleaned_error + "\n")
+            log_file.flush()
+            training_log += "Error:<br>" + cleaned_error.replace("\n", "<br>") + "<br>"
+        
+        training_log += "<br>Training process finished.<br>"
+        training_progress = 100
 
 @app.route('/training_progress')
 def training_progress_route():

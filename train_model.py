@@ -9,35 +9,35 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import Adam
 
-def load_data(data_path):
-    with open(data_path, 'rb') as f:
-        data, labels = pickle.load(f)
-    return data, labels
+def load_data():
+    with open('prepared_data/train_data.pkl', 'rb') as f:
+        X_train, y_train = pickle.load(f)
+    with open('prepared_data/val_data.pkl', 'rb') as f:
+        X_val, y_val = pickle.load(f)
+    with open('prepared_data/label_dict.pkl', 'rb') as f:
+        label_dict = pickle.load(f)
+    return X_train, y_train, X_val, y_val, label_dict
 
-def preprocess_data(data, labels, img_size):
-    X = []
-    y = []
+def preprocess_data(X, y, img_size):
+    X_processed = []
+    for img in X:
+        img = tf.image.resize(img, img_size)  # Resize the image
+        img = tf.keras.applications.mobilenet_v2.preprocess_input(img)  # Preprocess the image
+        X_processed.append(img)
+    return np.array(X_processed), np.array(y)
 
-    for img_path, label in zip(data, labels):
-        img = tf.keras.preprocessing.image.load_img(img_path, target_size=img_size)
-        img = tf.keras.preprocessing.image.img_to_array(img)
-        img = tf.keras.applications.mobilenet_v2.preprocess_input(img)
-        X.append(img)
-        y.append(label)
-    
-    X = np.array(X)
-    y = np.array(y)
-    
-    return X, y
-
-def train_model(data_path, epochs, batch_size):
+def train_model(epochs, batch_size):
     print("Loading data...")
-    data, labels = load_data(data_path)
+    X_train, y_train, X_val, y_val, label_dict = load_data()
     img_size = (128, 128)
-    X, y = preprocess_data(data, labels, img_size)
     
-    num_classes = len(set(labels))
-    y = tf.keras.utils.to_categorical([list(set(labels)).index(label) for label in y], num_classes)
+    print("Preprocessing data...")
+    X_train, y_train = preprocess_data(X_train, y_train, img_size)
+    X_val, y_val = preprocess_data(X_val, y_val, img_size)
+    
+    num_classes = len(label_dict)
+    y_train = tf.keras.utils.to_categorical(y_train, num_classes)
+    y_val = tf.keras.utils.to_categorical(y_val, num_classes)
     
     print("Defining model...")
     base_model = MobileNetV2(include_top=False, weights='imagenet', input_shape=(128, 128, 3))
@@ -55,21 +55,24 @@ def train_model(data_path, epochs, batch_size):
     model.compile(optimizer=Adam(), loss='categorical_crossentropy', metrics=['accuracy'])
     
     print("Starting training...")
-    datagen = ImageDataGenerator(validation_split=0.2)
+    datagen = ImageDataGenerator()
     
-    train_generator = datagen.flow(X, y, batch_size=batch_size, subset='training')
-    validation_generator = datagen.flow(X, y, batch_size=batch_size, subset='validation')
+    train_generator = datagen.flow(X_train, y_train, batch_size=batch_size)
+    validation_generator = datagen.flow(X_val, y_val, batch_size=batch_size)
     
     model.fit(train_generator, validation_data=validation_generator, epochs=epochs)
     
-    model.save('models/mobilenetv2_face_recognition.h5')
-    print("Model saved.")
+    if not os.path.exists('models'):
+        os.makedirs('models')
+    
+    model_path = 'models/mobilenetv2_face_recognition.h5'
+    model.save(model_path)
+    print(f"Model saved at {model_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--epochs', type=int, required=True)
     parser.add_argument('--batch_size', type=int, required=True)
     args = parser.parse_args()
     
-    train_model('train_data.pkl', args.epochs, args.batch_size)
+    train_model(args.epochs, args.batch_size)
