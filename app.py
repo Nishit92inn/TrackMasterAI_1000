@@ -7,18 +7,16 @@ import cv2
 from data_preparation import prepare_data
 import subprocess
 import locale
-locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-import os
+import requests
+from bs4 import BeautifulSoup
 import io
 import re
 import datetime
 import json
 from werkzeug.utils import secure_filename
-import os
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 import numpy as np
-import threading
 import pickle
 
 
