@@ -18,27 +18,31 @@ def load_data():
         label_dict = pickle.load(f)
     return X_train, y_train, X_val, y_val, label_dict
 
-def preprocess_data(X, y, img_size):
+def preprocess_data(X, img_size):
     X_processed = []
     for img in X:
         img = tf.image.resize(img, img_size)  # Resize the image
         img = tf.keras.applications.mobilenet_v2.preprocess_input(img)  # Preprocess the image
         X_processed.append(img)
-    return np.array(X_processed), np.array(y)
+    return np.array(X_processed)
 
 def train_model(epochs, batch_size):
     print("Loading data...")
     X_train, y_train, X_val, y_val, label_dict = load_data()
     img_size = (128, 128)
     
+    print(f"Training data: {len(X_train)} samples, Validation data: {len(X_val)} samples")  # Debugging statement
+    
     print("Preprocessing data...")
-    X_train, y_train = preprocess_data(X_train, y_train, img_size)
-    X_val, y_val = preprocess_data(X_val, y_val, img_size)
+    X_train = preprocess_data(X_train, img_size)
+    X_val = preprocess_data(X_val, img_size)
     
     num_classes = len(label_dict)
     y_train = tf.keras.utils.to_categorical(y_train, num_classes)
     y_val = tf.keras.utils.to_categorical(y_val, num_classes)
     
+    print(f"Number of classes: {num_classes}")  # Debugging statement
+
     print("Defining model...")
     base_model = MobileNetV2(include_top=False, weights='imagenet', input_shape=(128, 128, 3))
     x = base_model.output

@@ -397,6 +397,16 @@ def evaluate_model_function(model):
     if stderr:
         evaluation_log += "Error:<br>" + stderr.replace("\n", "<br>") + "<br>"
 
+    # Read the evaluation metrics
+    try:
+        log_dir = 'Model_Evaluation_Logs'
+        with open(os.path.join(log_dir, 'evaluation_metrics.json'), 'r', encoding='utf-8') as f:
+            metrics = json.load(f)
+            evaluation_log += f"<br>Evaluation Metrics:<br>Accuracy: {metrics['accuracy']}<br>Precision: {metrics['precision']}<br>Recall: {metrics['recall']}<br>F1 Score: {metrics['f1']}<br>"
+            evaluation_log += f"<br>Classification Report:<br>{metrics['report'].replace('\n', '<br>')}<br>"
+    except FileNotFoundError:
+        evaluation_log += "<br>Evaluation metrics not found.<br>"
+
     evaluation_log += "<br>Evaluation process finished.<br>"
     evaluation_progress = 100
 
@@ -415,9 +425,12 @@ def evaluation_results():
     try:
         with open(os.path.join(log_dir, 'evaluation_metrics.json'), 'r', encoding='utf-8') as f:
             metrics = json.load(f)
+        print("Metrics retrieved:", metrics)  # Debugging statement
         return render_template('evaluation_results.html', metrics=metrics)
     except FileNotFoundError:
-        return "No evaluation results found. Please run the evaluation first."
+        print("No evaluation results found.")  # Debugging statement
+        return render_template('evaluation_results.html', metrics=None)
+
 
 @app.route('/upload_image')
 def upload_image():

@@ -12,6 +12,14 @@ def load_data():
         label_dict = pickle.load(f)
     return X_val, y_val, label_dict
 
+def preprocess_data(X, img_size):
+    X_processed = []
+    for img in X:
+        img = tf.image.resize(img, img_size)  # Resize the image
+        img = tf.keras.applications.mobilenet_v2.preprocess_input(img)  # Preprocess the image
+        X_processed.append(img)
+    return np.array(X_processed)
+
 def evaluate_model():
     model_path = 'models/mobilenetv2_face_recognition.h5'
     if not os.path.exists(model_path):
@@ -23,6 +31,13 @@ def evaluate_model():
 
     print("Loading data...")
     X_val, y_val, label_dict = load_data()
+
+    print(f"Validation data: {len(X_val)} samples")
+    print(f"Labels in validation data: {np.unique(y_val, return_counts=True)}")
+
+    print("Preprocessing data...")
+    img_size = (128, 128)
+    X_val = preprocess_data(X_val, img_size)
 
     print("Evaluating model...")
     y_pred = model.predict(X_val)
@@ -43,6 +58,8 @@ def evaluate_model():
         "f1": f1,
         "report": report
     }
+
+    print(f"Evaluation metrics: {metrics}")
 
     log_dir = 'Model_Evaluation_Logs'
     os.makedirs(log_dir, exist_ok=True)

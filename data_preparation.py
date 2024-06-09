@@ -10,10 +10,11 @@ def load_data(dataset_path, image_size=(128, 128)):
     label_dict = {}
     label_counter = 0
 
-    for label in os.listdir(dataset_path):
-        label_path = os.path.join(dataset_path, label)
-        if os.path.isdir(label_path):
-            label_dict[label] = label_counter
+    for root, dirs, files in os.walk(dataset_path):
+        for dir_name in dirs:
+            label_path = os.path.join(root, dir_name)
+            label_dict[dir_name] = label_counter
+            print(f"Processing folder: {dir_name}")  # Debugging statement
             for image_file in os.listdir(label_path):
                 image_path = os.path.join(label_path, image_file)
                 try:
@@ -39,9 +40,15 @@ def prepare_data():
         image_size = (128, 128)
         images, labels, label_dict = load_data(dataset_path, image_size)
 
+        print(f"Total images: {len(images)}")  # Debugging statement
+        print(f"Labels distribution: {np.unique(labels, return_counts=True)}")  # Debugging statement
+
         # Split data into training and validation sets
         test_size = 0.2
         X_train, X_val, y_train, y_val = train_test_split(images, labels, test_size=test_size, random_state=42)
+
+        print(f"Training data: {len(X_train)} samples")  # Debugging statement
+        print(f"Validation data: {len(X_val)} samples")  # Debugging statement
 
         # Save data
         data_folder = 'prepared_data'
