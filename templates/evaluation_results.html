@@ -5,18 +5,41 @@
 {% block content %}
 <div class="container mt-4">
     <h1 class="text-center">Model Evaluation Results</h1>
-    {% if metrics %}
-    <div class="mt-4">
-        <h3>Evaluation Metrics</h3>
-        <p><strong>Accuracy:</strong> {{ metrics.accuracy }}</p>
-        <p><strong>Precision:</strong> {{ metrics.precision }}</p>
-        <p><strong>Recall:</strong> {{ metrics.recall }}</p>
-        <p><strong>F1 Score:</strong> {{ metrics.f1 }}</p>
-        <h3>Classification Report</h3>
-        <pre>{{ metrics.report }}</pre>
+    <div id="evaluation-metrics" class="mt-4">
+        <!-- The metrics will be dynamically inserted here by JavaScript -->
     </div>
-    {% else %}
-    <p>No evaluation results found. Please run the evaluation first.</p>
-    {% endif %}
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        function fetchEvaluationMetrics() {
+            $.ajax({
+                url: '/get_evaluation_metrics',
+                method: 'GET',
+                success: function(data) {
+                    if (data.error) {
+                        $('#evaluation-metrics').html('<p>Error: ' + data.error + '</p>');
+                    } else {
+                        let metricsHtml = `
+                            <h3>Evaluation Metrics</h3>
+                            <p><strong>Accuracy:</strong> ${data.accuracy}</p>
+                            <p><strong>Precision:</strong> ${data.precision}</p>
+                            <p><strong>Recall:</strong> ${data.recall}</p>
+                            <p><strong>F1 Score:</strong> ${data.f1}</p>
+                            <h3>Classification Report</h3>
+                            <pre>${data.report}</pre>
+                        `;
+                        $('#evaluation-metrics').html(metricsHtml);
+                    }
+                },
+                error: function() {
+                    $('#evaluation-metrics').html('<p>Error fetching evaluation metrics.</p>');
+                }
+            });
+        }
+
+        fetchEvaluationMetrics();
+    });
+</script>
 {% endblock %}

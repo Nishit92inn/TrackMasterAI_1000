@@ -430,7 +430,15 @@ def evaluation_results():
     except FileNotFoundError:
         print("No evaluation results found.")  # Debugging statement
         return render_template('evaluation_results.html', metrics=None)
-
+    
+@app.route('/get_evaluation_metrics', methods=['GET'])
+def get_evaluation_metrics():
+    try:
+        with open('Model_Evaluation_Logs/evaluation_metrics.json', 'r', encoding='utf-8') as f:
+            metrics = json.load(f)
+        return jsonify(metrics)
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/upload_image')
 def upload_image():

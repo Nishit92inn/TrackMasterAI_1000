@@ -10,11 +10,11 @@ def load_data(dataset_path, image_size=(128, 128)):
     label_dict = {}
     label_counter = 0
 
-    for root, dirs, files in os.walk(dataset_path):
-        for dir_name in dirs:
-            label_path = os.path.join(root, dir_name)
-            label_dict[dir_name] = label_counter
-            print(f"Processing folder: {dir_name}")  # Debugging statement
+    for label in os.listdir(dataset_path):
+        label_path = os.path.join(dataset_path, label)
+        if os.path.isdir(label_path):
+            label_dict[label] = label_counter
+            print(f"Processing folder: {label}")  # Debugging statement
             for image_file in os.listdir(label_path):
                 image_path = os.path.join(label_path, image_file)
                 try:

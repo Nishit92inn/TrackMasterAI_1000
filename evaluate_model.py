@@ -12,14 +12,6 @@ def load_data():
         label_dict = pickle.load(f)
     return X_val, y_val, label_dict
 
-def preprocess_data(X, img_size):
-    X_processed = []
-    for img in X:
-        img = tf.image.resize(img, img_size)  # Resize the image
-        img = tf.keras.applications.mobilenet_v2.preprocess_input(img)  # Preprocess the image
-        X_processed.append(img)
-    return np.array(X_processed)
-
 def evaluate_model():
     model_path = 'models/mobilenetv2_face_recognition.h5'
     if not os.path.exists(model_path):
@@ -34,10 +26,11 @@ def evaluate_model():
 
     print(f"Validation data: {len(X_val)} samples")
     print(f"Labels in validation data: {np.unique(y_val, return_counts=True)}")
+    print(f"Label dictionary: {label_dict}")
 
     print("Preprocessing data...")
-    img_size = (128, 128)
-    X_val = preprocess_data(X_val, img_size)
+    X_val = np.array([tf.image.resize(img, (128, 128)) for img in X_val])
+    X_val = tf.keras.applications.mobilenet_v2.preprocess_input(X_val)
 
     print("Evaluating model...")
     y_pred = model.predict(X_val)
@@ -50,7 +43,6 @@ def evaluate_model():
 
     report = classification_report(y_val, y_pred_classes, target_names=label_dict.keys())
 
-    # Save the evaluation metrics
     metrics = {
         "accuracy": accuracy,
         "precision": precision,
@@ -59,12 +51,11 @@ def evaluate_model():
         "report": report
     }
 
-    print(f"Evaluation metrics: {metrics}")
-
     log_dir = 'Model_Evaluation_Logs'
     os.makedirs(log_dir, exist_ok=True)
     with open(os.path.join(log_dir, 'evaluation_metrics.json'), 'w', encoding='utf-8') as f:
         json.dump(metrics, f)
+
     print("Evaluation metrics saved.")
 
 if __name__ == "__main__":
